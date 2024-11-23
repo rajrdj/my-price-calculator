@@ -6,8 +6,33 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
+// Define a type for inputs
+interface Inputs {
+  basePrice: number;
+  totalQuantity: number;
+  receivedQuantity: number;
+  transportCost: number;
+  gstRate: number;
+  returnShippingFee: number;
+  returnRate: number;
+  damageRate: number;
+  ratingCardCost: number;
+  packagingCost: number;
+  margin: number;
+}
+
+// Define a type for calculations
+interface Calculations {
+  adjustedPerPiecePrice: number;
+  transportPerPiece: number;
+  gstAmount: number;
+  returnCost: number;
+  damageCost: number;
+  totalCost: number;
+}
+
 // Utility function for calculation
-const calculateCosts = (inputs) => {
+const calculateCosts = (inputs: Inputs): Calculations => {
   const adjustedPerPiecePrice =
     (inputs.basePrice * inputs.totalQuantity) / inputs.receivedQuantity;
   const transportPerPiece = inputs.transportCost / inputs.receivedQuantity;
@@ -36,45 +61,59 @@ const calculateCosts = (inputs) => {
 };
 
 // Input Field Component
-const InputField = memo(({ label, name, value, onChange }) => {
-  const [tempValue, setTempValue] = useState(value);
-
-  useEffect(() => {
-    setTempValue(value);
-  }, [value]);
-
-  const handleBlur = () => {
-    onChange(name, parseFloat(tempValue) || 0);
-  };
-
-  const handleChange = (e) => {
-    setTempValue(e.target.value);
-  };
-
-  return (
-    <div className="flex flex-col space-y-1.5">
-      <Label htmlFor={name} className="text-sm font-medium">
-        {label}
-      </Label>
-      <Input
-        type="number"
-        id={name}
-        name={name}
-        value={tempValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        className="h-9 px-3 py-1 text-sm rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-        step="any"
-        min="0"
-        inputMode="decimal"
-        onWheel={(e) => e.target.blur()} // Prevent scroll input
-      />
-    </div>
+const InputField = memo(
+    ({
+      label,
+      name,
+      value,
+      onChange,
+    }: {
+      label: string;
+      name: keyof Inputs;
+      value: number;
+      onChange: (name: keyof Inputs, value: number) => void;
+    }) => {
+      const [tempValue, setTempValue] = useState<string>(value.toString());
+  
+      useEffect(() => {
+        setTempValue(value.toString());
+      }, [value]);
+  
+      const handleBlur = () => {
+        const numericValue = parseFloat(tempValue);
+        onChange(name, isNaN(numericValue) ? 0 : numericValue);
+      };
+  
+      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTempValue(e.target.value);
+      };
+  
+      return (
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor={name} className="text-sm font-medium">
+            {label}
+          </Label>
+          <Input
+            type="number"
+            id={name}
+            name={name}
+            value={tempValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            className="h-9 px-3 py-1 text-sm rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            step="any"
+            min="0"
+            inputMode="decimal"
+            onWheel={(e) => e.currentTarget.blur()} // Prevent scroll input
+          />
+        </div>
+      );
+    }
   );
-});
-
+  
+  InputField.displayName = "InputField";
 // Result Row Component
-const ResultRow = ({ label, value }) => (
+const ResultRow = ({ label, value }: { label: string; value: number }) => (
   <div className="flex justify-between items-center py-2">
     <span className="text-sm text-gray-600">{label}</span>
     <span className="font-medium">₹{value.toFixed(2)}</span>
@@ -82,7 +121,7 @@ const ResultRow = ({ label, value }) => (
 );
 
 const PriceCalculator = () => {
-  const [inputs, setInputs] = useState({
+  const [inputs, setInputs] = useState<Inputs>({
     basePrice: 100,
     totalQuantity: 100,
     receivedQuantity: 96,
@@ -96,13 +135,16 @@ const PriceCalculator = () => {
     margin: 50,
   });
 
-  const [calculations, setCalculations] = useState(() =>
+  const [calculations, setCalculations] = useState<Calculations>(() =>
     calculateCosts(inputs)
   );
 
-  const handleInputChange = useCallback((name, value) => {
-    setInputs((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  const handleInputChange = useCallback(
+    (name: keyof Inputs, value: number) => {
+      setInputs((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
 
   useEffect(() => {
     setCalculations(calculateCosts(inputs));
